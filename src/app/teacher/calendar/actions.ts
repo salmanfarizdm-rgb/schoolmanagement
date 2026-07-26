@@ -10,10 +10,11 @@ export async function upsertCalendarDay(formData: FormData) {
   const supabase = await createClient()
   const date = formData.get('date') as string
   const type = formData.get('type') as CalendarDayType
+  const label = (formData.get('label') as string | null)?.trim() || null
 
   const { error } = await supabase
     .from('calendar')
-    .upsert({ date, type }, { onConflict: 'date' })
+    .upsert({ date, type, label }, { onConflict: 'date' })
 
   if (error) return { error: error.message }
   revalidatePath('/teacher/calendar')

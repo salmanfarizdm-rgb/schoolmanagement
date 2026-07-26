@@ -18,7 +18,7 @@ export default async function ParentDashboard() {
     return <p className="text-sm text-gray-500">Parent record not found. Contact the teacher.</p>
   }
 
-  const student = parent.students as { id: string; name: string; gender: string; status: string } | null
+  const student = parent.students as unknown as { id: string; name: string; gender: string; status: string } | null
   const today = new Date().toISOString().split('T')[0]
 
   // Today's attendance

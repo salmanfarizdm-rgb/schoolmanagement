@@ -9,7 +9,12 @@ const links = [
   { href: '/teacher/dashboard',       label: 'Dashboard',       icon: '📊' },
   { href: '/teacher/attendance',      label: 'Attendance',      icon: '✅' },
   { href: '/teacher/students',        label: 'Students',        icon: '👥' },
+  { href: '/teacher/timetable',       label: 'Timetable',       icon: '📋' },
   { href: '/teacher/special-classes', label: 'Special Classes', icon: '📅' },
+  { href: '/teacher/leaves',          label: 'Leave Requests',  icon: '📝' },
+  { href: '/teacher/remarks',         label: 'Remarks',         icon: '💬' },
+  { href: '/teacher/announcements',   label: 'Announcements',   icon: '📢' },
+  { href: '/teacher/exams',           label: 'Exams',           icon: '📝' },
   { href: '/teacher/calendar',        label: 'Calendar',        icon: '🗓️' },
   { href: '/teacher/settings',        label: 'Settings',        icon: '⚙️' },
 ]

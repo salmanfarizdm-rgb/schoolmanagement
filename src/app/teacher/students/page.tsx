@@ -77,6 +77,8 @@ export default async function StudentsPage({
                 {parent && (
                   <StudentActions
                     studentId={s.id}
+                    studentName={s.name}
+                    studentGender={s.gender}
                     studentStatus={s.status}
                     parentId={parent.id}
                     whatsapp={parent.whatsapp_number ?? ''}

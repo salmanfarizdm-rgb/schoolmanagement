@@ -16,7 +16,9 @@ export async function login(formData: FormData) {
   const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
-    redirect('/login?error=' + encodeURIComponent(error.message))
+    // Redirect back to the appropriate login page based on whether it was an email or admission number
+    const page = username.includes('@') ? '/login/teacher' : '/login/parent'
+    redirect(page + '?error=' + encodeURIComponent(error.message))
   }
 
   // Determine role and redirect
@@ -36,5 +38,5 @@ export async function login(formData: FormData) {
 export async function logout() {
   const supabase = await createClient()
   await supabase.auth.signOut()
-  redirect('/login')
+  redirect('/login/parent')
 }

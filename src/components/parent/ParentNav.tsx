@@ -7,7 +7,12 @@ import { logout } from '@/app/(auth)/login/actions'
 const links = [
   { href: '/parent/dashboard',       label: 'Home',       icon: '🏠' },
   { href: '/parent/attendance',      label: 'Attendance', icon: '✅' },
+  { href: '/parent/leave',           label: 'Leave',      icon: '📝' },
+  { href: '/parent/timetable',       label: 'Timetable',  icon: '📋' },
   { href: '/parent/special-classes', label: 'Classes',    icon: '📅' },
+  { href: '/parent/remarks',         label: 'Remarks',    icon: '💬' },
+  { href: '/parent/announcements',   label: 'News',       icon: '📢' },
+  { href: '/parent/exams',           label: 'Exams',      icon: '📝' },
 ]
 
 export default function ParentNav({ childName }: { childName: string }) {

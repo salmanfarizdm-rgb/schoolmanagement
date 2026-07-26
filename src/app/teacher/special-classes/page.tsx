@@ -34,7 +34,7 @@ export default async function SpecialClassesPage({
       {/* List */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {(classes ?? []).map((c, i) => {
-          const confirmed = (c.special_class_confirmations as { count: number }[])?.[0]?.count ?? 0
+          const confirmed = (c.special_class_confirmations as unknown as { count: number }[])?.[0]?.count ?? 0
           const total = parentCount ?? 0
           return (
             <div

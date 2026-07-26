@@ -14,7 +14,7 @@ export default async function ParentLayout({ children }: { children: React.React
     .eq('id', user.id)
     .single()
 
-  const childName = (parent?.students as { name: string } | null)?.name ?? 'My Child'
+  const childName = (parent?.students as unknown as { name: string } | null)?.name ?? 'My Child'
 
   return (
     <div className="min-h-screen flex flex-col">

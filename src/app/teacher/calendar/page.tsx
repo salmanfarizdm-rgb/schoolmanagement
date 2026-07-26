@@ -41,7 +41,10 @@ export default async function CalendarPage({
             className={`flex items-center justify-between p-4 ${i !== (days?.length ?? 0) - 1 ? 'border-b border-gray-100' : ''}`}
           >
             <div>
-              <p className="text-sm font-medium text-gray-900">{d.date}</p>
+              <p className="text-sm font-medium text-gray-900">
+                {d.date}
+                {d.label && <span className="ml-2 text-gray-500">— {d.label}</span>}
+              </p>
               <Badge label={d.type} />
             </div>
             <form>

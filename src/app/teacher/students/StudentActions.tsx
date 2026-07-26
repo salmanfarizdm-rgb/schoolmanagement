@@ -1,19 +1,21 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { updateParentContact, updateStudentStatus, resetParentPassword } from './actions'
+import { updateParentContact, updateStudentStatus, resetParentPassword, updateStudentIdentity } from './actions'
 
 interface Props {
   studentId: string
+  studentName: string
+  studentGender: string
   studentStatus: string
   parentId: string
   whatsapp: string
   secondary: string
 }
 
-export default function StudentActions({ studentId, studentStatus, parentId, whatsapp, secondary }: Props) {
+export default function StudentActions({ studentId, studentName, studentGender, studentStatus, parentId, whatsapp, secondary }: Props) {
   const [open, setOpen] = useState(false)
-  const [tab, setTab] = useState<'contact' | 'password' | 'status'>('contact')
+  const [tab, setTab] = useState<'contact' | 'password' | 'status' | 'identity'>('contact')
   const [isPending, startTransition] = useTransition()
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
@@ -47,6 +49,16 @@ export default function StudentActions({ studentId, studentStatus, parentId, wha
     })
   }
 
+  function handleIdentity(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setMsg(null)
+    const fd = new FormData(e.currentTarget)
+    startTransition(async () => {
+      const r = await updateStudentIdentity(fd)
+      setMsg(r.error ? { ok: false, text: r.error } : { ok: true, text: 'Identity updated.' })
+    })
+  }
+
   return (
     <>
       <button
@@ -61,7 +73,7 @@ export default function StudentActions({ studentId, studentStatus, parentId, wha
           <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl overflow-hidden">
             {/* Tabs */}
             <div className="flex border-b border-gray-200">
-              {(['contact', 'password', 'status'] as const).map(t => (
+              {(['contact', 'password', 'status', 'identity'] as const).map(t => (
                 <button
                   key={t}
                   onClick={() => { setTab(t); setMsg(null) }}
@@ -143,6 +155,46 @@ export default function StudentActions({ studentId, studentStatus, parentId, wha
                   </div>
                   <button disabled={isPending} className="w-full rounded-lg bg-blue-600 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
                     Update
+                  </button>
+                </form>
+              )}
+
+              {tab === 'identity' && (
+                <form onSubmit={handleIdentity} className="space-y-3">
+                  <input type="hidden" name="student_id" value={studentId} />
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">Full name</label>
+                    <input
+                      name="name"
+                      defaultValue={studentName}
+                      required
+                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">Gender</label>
+                    <select
+                      name="gender"
+                      defaultValue={studentGender}
+                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="M">Male</option>
+                      <option value="F">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">Admission number</label>
+                    <input
+                      name="new_admission_no"
+                      defaultValue={studentId}
+                      required
+                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="mt-1 text-xs text-amber-600">Changing this will update the parent login username too.</p>
+                  </div>
+                  <button disabled={isPending} className="w-full rounded-lg bg-blue-600 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+                    Save Identity
                   </button>
                 </form>
               )}
