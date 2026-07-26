@@ -1,6 +1,28 @@
 import { createClient } from '@/lib/supabase/server'
 import AttendanceForm from './AttendanceForm'
 
+function ExportForm({ defaultMonth }: { defaultMonth: string }) {
+  return (
+    <form method="get" action="/teacher/attendance/export" className="flex items-center gap-2">
+      <input
+        type="month"
+        name="month"
+        defaultValue={defaultMonth}
+        className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+      <button
+        type="submit"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+      >
+        <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        Export CSV
+      </button>
+    </form>
+  )
+}
+
 export default async function AttendancePage({
   searchParams,
 }: {
@@ -52,9 +74,15 @@ export default async function AttendancePage({
     waMap[p.student_id] = p.whatsapp_number ?? ''
   }
 
+  // Default export month = current month
+  const currentMonth = today.slice(0, 7) // "YYYY-MM"
+
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-gray-900">Mark Attendance</h1>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <h1 className="text-xl font-bold text-gray-900">Mark Attendance</h1>
+        <ExportForm defaultMonth={currentMonth} />
+      </div>
       <AttendanceForm
         students={students ?? []}
         attMap={attMap}
