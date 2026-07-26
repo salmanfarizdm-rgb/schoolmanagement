@@ -7,15 +7,17 @@ interface Props {
   studentId: string
   studentName: string
   studentGender: string
+  studentDob: string
+  studentParentName: string
   studentStatus: string
   parentId: string
   whatsapp: string
   secondary: string
 }
 
-export default function StudentActions({ studentId, studentName, studentGender, studentStatus, parentId, whatsapp, secondary }: Props) {
+export default function StudentActions({ studentId, studentName, studentGender, studentDob, studentParentName, studentStatus, parentId, whatsapp, secondary }: Props) {
   const [open, setOpen] = useState(false)
-  const [tab, setTab] = useState<'contact' | 'password' | 'status' | 'identity'>('contact')
+  const [tab, setTab] = useState<'identity' | 'contact' | 'password' | 'status'>('identity')
   const [isPending, startTransition] = useTransition()
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
@@ -73,7 +75,7 @@ export default function StudentActions({ studentId, studentName, studentGender, 
           <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl overflow-hidden">
             {/* Tabs */}
             <div className="flex border-b border-gray-200">
-              {(['contact', 'password', 'status', 'identity'] as const).map(t => (
+              {(['identity', 'contact', 'password', 'status'] as const).map(t => (
                 <button
                   key={t}
                   onClick={() => { setTab(t); setMsg(null) }}
@@ -168,6 +170,24 @@ export default function StudentActions({ studentId, studentName, studentGender, 
                       name="name"
                       defaultValue={studentName}
                       required
+                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">Parent / guardian name</label>
+                    <input
+                      name="parent_name"
+                      defaultValue={studentParentName}
+                      placeholder="e.g. Ahmad bin Ibrahim"
+                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">Date of birth</label>
+                    <input
+                      type="date"
+                      name="date_of_birth"
+                      defaultValue={studentDob}
                       className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>

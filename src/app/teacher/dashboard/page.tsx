@@ -1,16 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/Badge'
+import DateRangeFilter from '@/components/ui/DateRangeFilter'
 
 const PAGE_SIZE = 10
 
 export default async function TeacherDashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ threshold_page?: string }>
+  searchParams: Promise<{ threshold_page?: string; ranking_page?: string; att_from?: string; att_to?: string }>
 }) {
   const params = await searchParams
   const thresholdPage = parseInt(params.threshold_page ?? '1', 10)
+  const rankingPage = parseInt(params.ranking_page ?? '1', 10)
+  const attFrom = params.att_from ?? ''
+  const attTo = params.att_to ?? ''
 
   const supabase = await createClient()
   const today = new Date().toISOString().split('T')[0]
@@ -61,22 +65,30 @@ export default async function TeacherDashboard({
     .select('id, name')
     .eq('status', 'active')
 
-  const { data: allAtt } = await supabase
-    .from('attendance')
-    .select('student_id, status')
+  let attQuery = supabase.from('attendance').select('student_id, status')
+  if (attFrom) attQuery = attQuery.gte('date', attFrom)
+  if (attTo) attQuery = attQuery.lte('date', attTo)
+  const { data: allAtt } = await attQuery
 
-  const attByStudent: Record<string, { present: number; total: number }> = {}
+  type AttStat = { present: number; absent: number; late: number; leave: number; total: number }
+  const attByStudent: Record<string, AttStat> = {}
   for (const row of allAtt ?? []) {
-    attByStudent[row.student_id] = attByStudent[row.student_id] ?? { present: 0, total: 0 }
+    attByStudent[row.student_id] = attByStudent[row.student_id] ?? { present: 0, absent: 0, late: 0, leave: 0, total: 0 }
     attByStudent[row.student_id].total++
-    if (row.status === 'Present' || row.status === 'Late') attByStudent[row.student_id].present++
+    if (row.status === 'Present') attByStudent[row.student_id].present++
+    else if (row.status === 'Absent') attByStudent[row.student_id].absent++
+    else if (row.status === 'Late') attByStudent[row.student_id].late++
+    else if (row.status === 'Leave') attByStudent[row.student_id].leave++
   }
+
+  const attendancePct = (stat: AttStat) =>
+    stat.total === 0 ? 0 : Math.round(((stat.present + stat.late) / stat.total) * 100)
 
   const belowThreshold = (allStudents ?? [])
     .map(s => {
       const stat = attByStudent[s.id]
       if (!stat || stat.total === 0) return null
-      const pct = Math.round((stat.present / stat.total) * 100)
+      const pct = attendancePct(stat)
       return pct < threshold ? { ...s, pct } : null
     })
     .filter(Boolean) as { id: string; name: string; pct: number }[]
@@ -88,6 +100,18 @@ export default async function TeacherDashboard({
     thresholdPage * PAGE_SIZE
   )
   const thresholdPages = Math.ceil(thresholdTotal / PAGE_SIZE)
+
+  // Attendance ranking — all students sorted by % desc
+  const rankingAll = (allStudents ?? [])
+    .map(s => {
+      const stat = attByStudent[s.id] ?? { present: 0, absent: 0, late: 0, leave: 0, total: 0 }
+      return { ...s, stat, pct: attendancePct(stat) }
+    })
+    .sort((a, b) => b.pct - a.pct || a.name.localeCompare(b.name))
+
+  const rankingTotal = rankingAll.length
+  const rankingSlice = rankingAll.slice((rankingPage - 1) * PAGE_SIZE, rankingPage * PAGE_SIZE)
+  const rankingPages = Math.ceil(rankingTotal / PAGE_SIZE)
 
   // Latest special class — who hasn't confirmed
   const { data: latestClass } = await supabase
@@ -219,6 +243,87 @@ export default async function TeacherDashboard({
           </div>
         </section>
       )}
+
+      {/* Attendance Ranking */}
+      <section>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+            Attendance Ranking ({rankingTotal} students)
+            {(attFrom || attTo) && (
+              <span className="ml-2 normal-case font-normal text-blue-600">
+                {attFrom && attTo ? `${attFrom} → ${attTo}` : attFrom ? `from ${attFrom}` : `to ${attTo}`}
+              </span>
+            )}
+          </h2>
+          <DateRangeFilter
+            from={attFrom}
+            to={attTo}
+            fromParam="att_from"
+            toParam="att_to"
+            preserveParams={['threshold_page', 'ranking_page']}
+          />
+        </div>
+        {rankingSlice.length === 0 ? (
+          <p className="text-sm text-gray-500">No attendance data yet.</p>
+        ) : (
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 w-10">#</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">Name</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-green-600">P</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-red-500">A</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-orange-500">L8</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-blue-500">Lv</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-500">Tot</th>
+                  <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rankingSlice.map((s, i) => {
+                  const rank = (rankingPage - 1) * PAGE_SIZE + i + 1
+                  const pctColor = s.pct >= threshold ? 'text-green-700' : 'text-red-600'
+                  return (
+                    <tr key={s.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
+                      <td className="px-3 py-2 text-xs text-gray-400 font-medium">{rank}</td>
+                      <td className="px-3 py-2">
+                        <p className="text-sm font-medium text-gray-900">{s.name}</p>
+                        <p className="text-xs text-gray-400">{s.id}</p>
+                      </td>
+                      <td className="px-3 py-2 text-center text-xs text-green-700">{s.stat.present}</td>
+                      <td className="px-3 py-2 text-center text-xs text-red-500">{s.stat.absent}</td>
+                      <td className="px-3 py-2 text-center text-xs text-orange-500">{s.stat.late}</td>
+                      <td className="px-3 py-2 text-center text-xs text-blue-500">{s.stat.leave}</td>
+                      <td className="px-3 py-2 text-center text-xs text-gray-500">{s.stat.total}</td>
+                      <td className={`px-3 py-2 text-right text-sm font-semibold ${pctColor}`}>
+                        {s.stat.total === 0 ? '—' : `${s.pct}%`}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {rankingPages > 1 && (
+          <div className="flex gap-2 mt-2 justify-end items-center">
+            {rankingPage > 1 && (
+              <Link
+                href={`/teacher/dashboard?ranking_page=${rankingPage - 1}${attFrom ? `&att_from=${attFrom}` : ''}${attTo ? `&att_to=${attTo}` : ''}`}
+                className="text-xs text-blue-600 underline"
+              >Prev</Link>
+            )}
+            <span className="text-xs text-gray-500">{rankingPage}/{rankingPages}</span>
+            {rankingPage < rankingPages && (
+              <Link
+                href={`/teacher/dashboard?ranking_page=${rankingPage + 1}${attFrom ? `&att_from=${attFrom}` : ''}${attTo ? `&att_to=${attTo}` : ''}`}
+                className="text-xs text-blue-600 underline"
+              >Next</Link>
+            )}
+          </div>
+        )}
+      </section>
     </div>
   )
 }

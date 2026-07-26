@@ -112,19 +112,20 @@ export async function resetParentPassword(formData: FormData) {
 
 export async function updateStudentIdentity(formData: FormData) {
   const supabase = await createServiceClient()
-  const { data: { user } } = await supabase.auth.admin.listUsers()
-    .then(() => supabase.auth.getUser())
+  const { data: { user } } = await supabase.auth.getUser()
   const changedBy = user?.id ?? null
 
   const studentId = formData.get('student_id') as string
   const newName = (formData.get('name') as string).trim()
   const newGender = formData.get('gender') as string
   const newId = (formData.get('new_admission_no') as string).trim()
+  const newDob = (formData.get('date_of_birth') as string | null) || null
+  const newParentName = (formData.get('parent_name') as string | null)?.trim() || null
 
   // Fetch current values for audit log
   const { data: current } = await supabase
     .from('students')
-    .select('name, gender, id')
+    .select('name, gender, id, date_of_birth, parent_name')
     .eq('id', studentId)
     .single()
 
@@ -134,10 +135,16 @@ export async function updateStudentIdentity(formData: FormData) {
 
   if (current.name !== newName) logs.push({ student_id: studentId, field: 'name', old_value: current.name, new_value: newName, changed_by: changedBy })
   if (current.gender !== newGender) logs.push({ student_id: studentId, field: 'gender', old_value: current.gender, new_value: newGender, changed_by: changedBy })
+  if ((current.date_of_birth ?? null) !== newDob) logs.push({ student_id: studentId, field: 'date_of_birth', old_value: current.date_of_birth, new_value: newDob, changed_by: changedBy })
+  if ((current.parent_name ?? null) !== newParentName) logs.push({ student_id: studentId, field: 'parent_name', old_value: current.parent_name, new_value: newParentName, changed_by: changedBy })
   if (newId && newId !== studentId) logs.push({ student_id: studentId, field: 'admission_no', old_value: studentId, new_value: newId, changed_by: changedBy })
 
-  // Update student — admission number change uses ON UPDATE CASCADE
-  const updatePayload: { name: string; gender: string; id?: string } = { name: newName, gender: newGender }
+  const updatePayload: { name: string; gender: string; date_of_birth: string | null; parent_name: string | null; id?: string } = {
+    name: newName,
+    gender: newGender,
+    date_of_birth: newDob,
+    parent_name: newParentName,
+  }
   if (newId && newId !== studentId) updatePayload.id = newId
 
   const { error } = await supabase
@@ -147,9 +154,7 @@ export async function updateStudentIdentity(formData: FormData) {
 
   if (error) return { error: error.message }
 
-  // Write audit logs (if any changed fields)
   if (logs.length > 0) {
-    // Use the new id as student_id in logs if admission number changed
     const finalStudentId = updatePayload.id ?? studentId
     const auditRows = logs.map(l => ({ ...l, student_id: finalStudentId }))
     await supabase.from('student_edit_log').insert(auditRows)

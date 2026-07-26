@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { upsertTimetableSlot, deleteTimetableSlot } from './actions'
 
 interface Props {
@@ -9,11 +10,14 @@ interface Props {
   maxPeriods: number
 }
 
-export default function TimetableGrid({ grid, days, maxPeriods }: Props) {
+export default function TimetableGrid({ grid: initialGrid, days, maxPeriods }: Props) {
+  // Local copy of grid so saves reflect immediately without waiting for server re-render
+  const [grid, setGrid] = useState(initialGrid)
   const [editing, setEditing] = useState<{ day: number; period: number } | null>(null)
   const [value, setValue] = useState('')
   const [isPending, startTransition] = useTransition()
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const router = useRouter()
 
   function openCell(day: number, period: number) {
     setEditing({ day, period })
@@ -24,18 +28,31 @@ export default function TimetableGrid({ grid, days, maxPeriods }: Props) {
   function handleSave() {
     if (!editing) return
     setMsg(null)
+    const { day, period } = editing
+    const subject = value.trim()
     const fd = new FormData()
-    fd.set('day_of_week', String(editing.day))
-    fd.set('period_number', String(editing.period))
-    fd.set('subject', value.trim())
+    fd.set('day_of_week', String(day))
+    fd.set('period_number', String(period))
+    fd.set('subject', subject)
     startTransition(async () => {
-      const r = value.trim()
+      const r = subject
         ? await upsertTimetableSlot(fd)
         : await deleteTimetableSlot(fd)
       if (r.error) {
         setMsg({ ok: false, text: r.error })
       } else {
+        // Update local grid immediately so the cell reflects the change
+        setGrid(prev => {
+          const next = { ...prev, [day]: { ...(prev[day] ?? {}) } }
+          if (subject) {
+            next[day][period] = subject
+          } else {
+            delete next[day][period]
+          }
+          return next
+        })
         setEditing(null)
+        router.refresh() // keep server cache in sync
       }
     })
   }
@@ -44,7 +61,6 @@ export default function TimetableGrid({ grid, days, maxPeriods }: Props) {
 
   return (
     <>
-      {/* Desktop: scrollable grid */}
       <div className="overflow-x-auto rounded-xl border border-gray-200">
         <table className="min-w-full text-sm">
           <thead>
@@ -81,7 +97,6 @@ export default function TimetableGrid({ grid, days, maxPeriods }: Props) {
         </table>
       </div>
 
-      {/* Edit modal */}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-xs bg-white rounded-2xl shadow-xl p-5 space-y-4">
