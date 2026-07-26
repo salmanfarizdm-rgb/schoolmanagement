@@ -29,14 +29,14 @@ export default async function AttendancePage({
   const studentIds = (students ?? []).map(s => s.id)
   const { data: existing } = await supabase
     .from('attendance')
-    .select('student_id, status, arrival_time')
+    .select('student_id, status, arrival_time, reason')
     .eq('date', date)
     .eq('period', period)
     .in('student_id', studentIds.length ? studentIds : ['__none__'])
 
-  const attMap: Record<string, { status: string; arrival_time: string | null }> = {}
+  const attMap: Record<string, { status: string; arrival_time: string | null; reason: string | null }> = {}
   for (const row of existing ?? []) {
-    attMap[row.student_id] = { status: row.status, arrival_time: row.arrival_time }
+    attMap[row.student_id] = { status: row.status, arrival_time: row.arrival_time, reason: row.reason }
   }
 
   return (

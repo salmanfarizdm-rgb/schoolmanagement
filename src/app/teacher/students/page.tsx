@@ -5,7 +5,7 @@ import DateRangeFilter from '@/components/ui/DateRangeFilter'
 import StudentActions from './StudentActions'
 import CSVImport from './CSVImport'
 
-const PAGE_SIZE = 15
+const PAGE_SIZE = 50
 
 export default async function StudentsPage({
   searchParams,
@@ -95,7 +95,7 @@ export default async function StudentsPage({
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-semibold text-gray-900">{s.name}</p>
+                    <p className="text-sm font-semibold text-gray-900 break-words">{s.name}</p>
                     <Badge label={s.status} />
                   </div>
                   <p className="text-xs text-gray-500 mt-0.5">{s.id} · {s.gender}</p>

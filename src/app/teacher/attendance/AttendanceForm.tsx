@@ -12,7 +12,7 @@ interface Student { id: string; name: string; gender: string }
 
 interface Props {
   students: Student[]
-  attMap: Record<string, { status: string; arrival_time: string | null }>
+  attMap: Record<string, { status: string; arrival_time: string | null; reason: string | null }>
   date: string
   period: 'morning' | 'afternoon'
   page: number
@@ -176,6 +176,12 @@ export default function AttendanceForm({ students, attMap, date, period, page, t
                     className="rounded-lg border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
+              )}
+              {/* Parent-submitted reason */}
+              {attMap[s.id]?.reason && (
+                <p className="mt-2 text-xs text-gray-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-1.5">
+                  <span className="font-medium text-amber-700">Reason: </span>{attMap[s.id].reason}
+                </p>
               )}
             </div>
           )
