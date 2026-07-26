@@ -25,18 +25,31 @@ export default async function AttendancePage({
     .order('name')
     .range(from, to)
 
-  // Fetch existing attendance for this date+period
   const studentIds = (students ?? []).map(s => s.id)
-  const { data: existing } = await supabase
-    .from('attendance')
-    .select('student_id, status, arrival_time, reason')
-    .eq('date', date)
-    .eq('period', period)
-    .in('student_id', studentIds.length ? studentIds : ['__none__'])
+  const none = ['__none__']
+
+  // Fetch existing attendance + parent WA numbers in parallel
+  const [{ data: existing }, { data: parents }] = await Promise.all([
+    supabase
+      .from('attendance')
+      .select('student_id, status, arrival_time, reason')
+      .eq('date', date)
+      .eq('period', period)
+      .in('student_id', studentIds.length ? studentIds : none),
+    supabase
+      .from('parents')
+      .select('student_id, whatsapp_number')
+      .in('student_id', studentIds.length ? studentIds : none),
+  ])
 
   const attMap: Record<string, { status: string; arrival_time: string | null; reason: string | null }> = {}
   for (const row of existing ?? []) {
     attMap[row.student_id] = { status: row.status, arrival_time: row.arrival_time, reason: row.reason }
+  }
+
+  const waMap: Record<string, string> = {}
+  for (const p of parents ?? []) {
+    waMap[p.student_id] = p.whatsapp_number ?? ''
   }
 
   return (
@@ -45,6 +58,7 @@ export default async function AttendancePage({
       <AttendanceForm
         students={students ?? []}
         attMap={attMap}
+        waMap={waMap}
         date={date}
         period={period}
         page={page}
